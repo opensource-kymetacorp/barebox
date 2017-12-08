@@ -424,6 +424,7 @@ static int mmu_init(void)
 {
 	struct memory_bank *bank;
 	int i;
+	unsigned long actlr;
 
 	if (list_empty(&memory_banks))
 		/*
@@ -478,6 +479,11 @@ static int mmu_init(void)
 	/* Set the Domain Access Control Register */
 	i = 0x3;
 	asm volatile ("mcr  p15,0,%0,c3,c0,0" : : "r"(i) /*:*/);
+
+	/* Turn on Cache and TLB maintenance broadcast */
+	asm volatile ("mrc  p15,0,%0,c1,c0,1" : "=r"(actlr));
+	actlr |= 1;
+	asm volatile ("mcr  p15,0,%0,c1,c0,1" : : "r"(actlr) /*:*/);
 
 	/* create a flat mapping using 1MiB sections */
 	create_sections(0, 0, PAGE_SIZE, PMD_SECT_AP_WRITE | PMD_SECT_AP_READ |
