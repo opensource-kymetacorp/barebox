@@ -144,7 +144,10 @@ void arria10_init(struct arria10_mainpll_cfg *mainpll,
 	 * Enable address filtering (Bit[0])
 	 */
 	writel(0x00000001, ARRIA10_MPUL2_ADRFLTR_START);
+#if 0
+	/* TLB cach broadcast doesnt seem to work when remapping ram */
 	writel(0x00000002, ARRIA10_SYSMGR_NOC_ADDR_REMAP_VALUE);
+#endif
 
 	arria10_reset_peripherals();
 
