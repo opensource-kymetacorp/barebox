@@ -459,6 +459,7 @@ static void efi_partition(void *buf, struct block_device *blk,
 		pentry->size++;
 		part_set_efi_name(&ptes[i], pentry->name);
 		snprintf(pentry->partuuid, sizeof(pentry->partuuid), "%pUl", &ptes[i].unique_partition_guid);
+		dev_add_param_fixed(blk->dev, pentry->name, pentry->partuuid);
 		pd->used_entries++;
 	}
 
