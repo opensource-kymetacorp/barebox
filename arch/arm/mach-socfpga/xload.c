@@ -24,7 +24,7 @@ static struct socfpga_barebox_part default_parts[] = {
 	},
 	{ /* sentinel */ }
 };
-const struct socfpga_barebox_part *barebox_parts = default_parts;
+const struct socfpga_barebox_part *barebox_part = default_parts;
 
 static __noreturn int socfpga_xload(void)
 {
@@ -36,12 +36,14 @@ static __noreturn int socfpga_xload(void)
 	case BOOTSOURCE_MMC:
 		socfpga_cyclone5_mmc_init();
 
-		for (part = barebox_parts; part->mmc_disk; part++) {
-			buf = bootstrap_read_disk(barebox_parts->mmc_disk, "fat");
+		for (part = barebox_part; part->mmc_disk; part++) {
+			buf = bootstrap_read_disk(barebox_part->mmc_disk, "fat");
 			if (!buf) {
 				pr_info("failed to load barebox from MMC %s\n",
 					part->mmc_disk);
 				continue;
+			} else {
+				break;
 			}
 		}
 		if (!buf) {
@@ -51,7 +53,7 @@ static __noreturn int socfpga_xload(void)
 		break;
 	case BOOTSOURCE_SPI:
 		socfpga_cyclone5_qspi_init();
-		for (part = barebox_parts; part->nor_size; part++) {
+		for (part = barebox_part; part->nor_size; part++) {
 			buf = bootstrap_read_devfs("mtd0", false,
 					part->nor_offset, part->nor_size, SZ_1M);
 			if (!buf) {
