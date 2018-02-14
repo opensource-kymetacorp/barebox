@@ -97,7 +97,7 @@ void *barebox_arm_boot_dtb(void);
 static inline unsigned long arm_mem_stack_top(unsigned long membase,
 					      unsigned long endmem)
 {
-	return endmem - SZ_64K;
+	return endmem - SZ_32K - SZ_16K;
 }
 
 static inline unsigned long arm_mem_stack(unsigned long membase,
