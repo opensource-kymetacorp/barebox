@@ -173,8 +173,11 @@ void arria10_init(struct arria10_mainpll_cfg *mainpll,
 	/* deassert peripheral resets */
 	arria10_reset_deassert_dedicated_peripherals();
 
+#ifdef CONFIG_ARCH_SOCFPGA_XLOAD
+#else
 	/* wait for fpga_usermode */
 	while ((readl(0xffd03080) & 0x6) == 0);
+#endif
 
 	/* shared pins */
 	for (i = arria10_pinmux_shared_io_q1_1;
