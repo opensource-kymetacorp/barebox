@@ -122,9 +122,11 @@ extern unsigned long arm_stack_top;
 
 static int arm_request_stack(void)
 {
+#ifdef CONFIG_ARCH_SOCFPGA_XLOAD
+#else
 	if (!request_sdram_region("stack", arm_stack_top - STACK_SIZE, STACK_SIZE))
 		pr_err("Error: Cannot request SDRAM region for stack\n");
-
+#endif
 	return 0;
 }
 coredevice_initcall(arm_request_stack);
