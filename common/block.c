@@ -36,7 +36,7 @@ struct chunk {
 	struct list_head list;
 };
 
-#define BUFSIZE (PAGE_SIZE * 16)
+#define BUFSIZE (PAGE_SIZE * 1)
 
 /*
  * Write all dirty chunks back to the device
