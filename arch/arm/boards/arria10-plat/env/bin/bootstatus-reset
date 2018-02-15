@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# Reset boot count to 0
+memset -b -d /dev/eeprom1 1 0x00 1 &&
+echo "Reset boot count to zero"

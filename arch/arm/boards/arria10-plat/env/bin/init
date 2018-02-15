@@ -1,0 +1,63 @@
+#!/bin/sh
+
+export PATH=/env/bin
+
+global hostname
+global user
+global autoboot_timeout
+global boot.default
+global allow_color
+global linux.bootargs.base
+global linux.bootargs.console
+#linux.bootargs.dyn.* will be cleared at the beginning of boot
+global linux.bootargs.dyn.ip
+global linux.bootargs.dyn.root
+global editcmd
+global tftp_server_ip
+global nfs_server_ip
+global nfs_server_root
+global boot.default
+global linux.debug
+magicvar -a global.linux.debug "Enable Linux serial console"
+global ip
+magicvar -a global.ip "Configure network static or dhcp"
+global ipaddr
+magicvar -a global.ipaddr "network ip address for barebox, passed to Linux"
+global netmask
+magicvar -a global.netmask "network netmask for barebox, passed to Linux"
+global gateway
+magicvar -a global.gateway "network gateway for barebox, passed to Linux"
+
+[ -z "${global.hostname}" ] && global.hostname=generic
+[ -z "${global.user}" ] && global.user=none
+magicvar -a global.user "username (used in network filenames)"
+[ -z "${global.autoboot_timeout}" ] && global.autoboot_timeout=3
+magicvar -a global.autoboot_timeout "timeout in seconds before automatic booting"
+[ -z "${global.allow_color}" ] && global.allow_color=true
+magicvar -a global.allow_color "Allow color on the console (boolean)"
+[ -z "${global.editcmd}" ] && global.editcmd=sedit
+
+[ -z "${global.tftp_server_ip}" ] && global.tftp_server_ip=none
+magicvar -a global.tftp_server_ip "IP address of the TFTP server with kernel, devicetree and initrd"
+
+[ -z "${global.nfs_server_ip}" ] && global.nfs_server_ip=none
+magicvar -a global.nfs_server_ip "IP address of the NFS server with root filesystem"
+
+[ -z "${global.nfs_server_root}" ] && global.nfs_server_root=none
+magicvar -a global.nfs_server_root "Root filesystem export path on the NFS server"
+
+[ -z "${global.boot.default}" ] && global.boot.default=disk
+magicvar -a global.boot.default "Default boot medium"
+
+for i in /env/init/*; do
+	. $i
+done
+
+echo -e -n "\nHit ^C to stop autoboot: "
+
+timeout -c $global.autoboot_timeout
+autoboot="$?"
+
+if [ "$autoboot" = 0 ]; then
+	boot
+fi

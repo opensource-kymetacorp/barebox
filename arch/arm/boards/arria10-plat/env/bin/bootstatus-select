@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# Select which partition to boot
+memset -b -d /dev/eeprom1 0 $1 1 &&
+echo Set active partition to $1
+

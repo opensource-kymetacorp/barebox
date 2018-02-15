@@ -1,0 +1,32 @@
+#!/bin/sh
+
+BOOT=/mnt/nfs/boot
+global.bootm.oftree=$BOOT/socfpga_arria10_plat.dtb
+global.bootm.image=$BOOT/zImage
+
+if [ "${global.nfs_server_ip}" = "none" ]; then
+        echo "NFS server IP is not provided"
+        exit 1
+fi
+
+if [ "${global.nfs_server_root}" = "none" ]; then
+
+        echo "NFS root path was not provided"
+        exit 1
+fi
+
+if [ ! -e "${global.bootm.image}" ]; then
+	echo "No kernel image found at ${global.bootm.image}"
+	exit 1
+fi
+
+if [ ! -e "${global.bootm.oftree}" ]; then
+        echo "No device tree found at ${global.bootm.oftree}"
+        exit 1
+fi
+
+# NFS should be auto-mounted when /mnt/nfs is accessed
+
+# Sets "ip=...." kernel boot argument
+bootargs-ip
+global.linux.bootargs.dyn.root="root=/dev/nfs nfsroot=${global.nfs_server_ip}:${global.nfs_server_root},vers=3,rsize=65536,wsize=65536,tcp rw"

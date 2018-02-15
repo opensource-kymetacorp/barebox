@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ ! -e /mnt/nfs/boot/xload.bin ]; then
+  echo Could not find xload.bin in NFS mount
+  exit 1
+fi
+memcpy -l -s /mnt/nfs/boot/xload.bin -d /dev/mmc0.0 0 0x00000 &&
+memcpy -l -s /mnt/nfs/boot/xload.bin -d /dev/mmc0.0 0 0x10000 &&
+memcpy -l -s /mnt/nfs/boot/xload.bin -d /dev/mmc0.0 0 0x20000 &&
+memcpy -l -s /mnt/nfs/boot/xload.bin -d /dev/mmc0.0 0 0x30000 &&
+echo Updated xloader from NFS

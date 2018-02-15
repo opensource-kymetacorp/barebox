@@ -1,0 +1,6 @@
+#!/bin/sh
+# Mount NFS root filesystem on /mnt/nfs
+ifup eth0 &&
+  mkdir -p /mnt/nfs &&
+  mount -t nfs ${global.nfs_server_ip}:${global.nfs_server_root} /mnt/nfs
+

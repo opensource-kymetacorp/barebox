@@ -1,0 +1,14 @@
+#!/bin/sh
+
+bootdir=/boot
+if [ $# -gt 0 -a $1 != $bootsource_instance ]; then
+  dev=mmc0.boot$1
+  echo Update barebox in partition $dev
+  mount /dev/$dev || exit 1
+  bootdir=/mnt/$dev
+fi
+if [ ! -e /mnt/nfs/boot/barebox.bin ]; then
+  echo Could not find barebox.bin in NFS mount
+  exit 1
+fi
+cp /mnt/nfs/boot/barebox.bin $bootdir/barebox.bin && echo Updated barebox from NFS

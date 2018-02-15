@@ -1,0 +1,16 @@
+#!/bin/sh
+
+BOOT=/boot
+global.bootm.image=$BOOT/zImage
+global.bootm.oftree=$BOOT/socfpga_arria10_plat.dtb
+global.bootm.initrd=$BOOT/rootfs.cpio.xz
+
+for item in ${global.bootm.image} ${global.bootm.oftree} ${global.bootm.initrd}; do
+    if [ ! -f ${item} ]; then
+	echo "************************************************************"
+	echo "* ERROR: Required boot item ${item} is missing. Booting aborted."
+	echo "************************************************************"
+	exit 1
+    fi
+done
+

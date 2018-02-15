@@ -1,0 +1,17 @@
+#!/bin/sh
+
+bootdir=/boot
+if [ $# -gt 0 -a $1 != $bootsource_instance ]; then
+  dev=mmc0.boot$1
+  echo Update barebox in partition $dev
+  mount /dev/$dev || exit 1
+  bootdir=/mnt/$dev
+fi
+nfsdir=/mnt/nfs/boot
+kernel=$nfsdir/zImage
+dtb=$nfsdir/socfpga_arria10_plat.dtb
+if [ ! -e $kernel -o ! -e $dtb ]; then
+  echo Could not find kernel and/or dtb in NFS mount
+  exit 1
+fi
+cp $kernel $dtb $bootdir && echo Updated kernel from NFS

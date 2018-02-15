@@ -1,0 +1,152 @@
+/*
+ * An Arria 10 platform
+ * - 2GB memory
+ * - 2 ethernet interfaces
+ * - 2 eeproms holding EUI-48 for mac addresses
+ * - serial console on second uart
+ */
+/dts-v1/;
+#include <arm/socfpga_arria10.dtsi>
+
+/ {
+	model = "SOCFPGA Arria 10";
+	compatible = "arria10,plat";
+
+	aliases {
+		serial0 = &uart1;
+		ethernet0 = &gmac0;
+		ethernet1 = &gmac1;
+		mmc0 = &mmc;
+	};
+
+	chosen {
+		linux,stdout-path = &uart1;
+
+		environment@0 {
+			compatible = "barebox,environment";
+			device-path = &mmc, "partname:1";
+			file-path = "barebox.env";
+		};
+	};
+
+	memory {
+		name = "memory";
+		device_type = "memory";
+		reg = <0x0 0x80000000>;
+	};
+
+	soc {
+		clkmgr@ffd04000 {
+			clocks {
+				osc1 {
+					clock-frequency = <25000000>;
+				};
+				cb_intosc_hs_div2_clk {
+					clock-frequency = <0>;
+				};
+				cb_intosc_ls_clk {
+					clock-frequency = <60000000>;
+				};
+				f2s_free_clk {
+					clock-frequency = <200000000>;
+				};
+			};
+		};
+	};
+};
+
+&gmac0 {
+	status = "okay";
+	phy-mode = "rgmii";
+	phy-addr = <0xffffffff>; /* probe for phy addr */
+	/* mac-address = [CE 9A 3D 26 5E 00]; */
+
+	/*
+	 * These skews assume the user's FPGA design is adding 600ps of delay
+	 * for TX_CLK on Arria 10.
+	 *
+	 * All skews are offset since hardware skew values for the ksz9031
+	 * range from a negative skew to a positive skew.
+	 * See the micrel-ksz90x1.txt Documentation file for details.
+	 */
+	txd0-skew-ps = <0>; /* -420ps */
+	txd1-skew-ps = <0>; /* -420ps */
+	txd2-skew-ps = <0>; /* -420ps */
+	txd3-skew-ps = <0>; /* -420ps */
+	rxd0-skew-ps = <420>; /* 0ps */
+	rxd1-skew-ps = <420>; /* 0ps */
+	rxd2-skew-ps = <420>; /* 0ps */
+	rxd3-skew-ps = <420>; /* 0ps */
+	txen-skew-ps = <0>; /* -420ps */
+	txc-skew-ps = <1860>; /* 960ps */
+	rxdv-skew-ps = <420>; /* 0ps */
+	rxc-skew-ps = <1680>; /* 780ps */
+	max-frame-size = <1518>;
+};
+
+&gmac1 {
+	phy-mode = "rgmii";
+	phy-addr = <0x00fffff0>; /* probe for phy addr */
+
+	/*
+	 * These skews assume the user's FPGA design is adding 600ps of delay
+	 * for TX_CLK on Arria 10.
+	 *
+	 * All skews are offset since hardware skew values for the ksz9031
+	 * range from a negative skew to a positive skew.
+	 * See the micrel-ksz90x1.txt Documentation file for details.
+	 */
+	txd0-skew-ps = <0>; /* -420ps */
+	txd1-skew-ps = <0>; /* -420ps */
+	txd2-skew-ps = <0>; /* -420ps */
+	txd3-skew-ps = <0>; /* -420ps */
+	rxd0-skew-ps = <420>; /* 0ps */
+	rxd1-skew-ps = <420>; /* 0ps */
+	rxd2-skew-ps = <420>; /* 0ps */
+	rxd3-skew-ps = <420>; /* 0ps */
+	txen-skew-ps = <0>; /* -420ps */
+	txc-skew-ps = <1860>; /* 960ps */
+	rxdv-skew-ps = <420>; /* 0ps */
+	rxc-skew-ps = <1680>; /* 780ps */
+	max-frame-size = <3800>;
+	status = "okay";
+};
+
+&i2c0 {
+	speed-mode = <1>;
+	status = "okay";
+};
+
+&i2c4 {
+	speed-mode = <1>;
+	status = "okay";
+
+	gbeeth0_eeprom: eth0_eeprom@54 {
+		compatible = "atmel,24c02";
+		reg = <0x54>;
+		pagesize = <16>;
+	};
+
+	gbeeth1_eeprom: eth1_eeprom@57 {
+		compatible = "atmel,24c02";
+		reg = <0x57>;
+		pagesize = <16>;
+	};
+
+	rtc: rtc@68 {
+		compatible = "dallas,ds1338";
+		reg = <0x68>;
+	};
+};
+
+&mmc {
+	supports-highspeed;
+	broken-cd;
+	bus-width = <4>;
+	status = "okay";
+};
+
+&uart1 {
+	reg-io-width = <4>;
+	status = "okay";
+};
