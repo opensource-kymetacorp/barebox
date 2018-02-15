@@ -38,6 +38,10 @@ pblx-$(CONFIG_MACH_SOCFPGA_ARRIA10_PLAT) += start_socfpga_arria10_plat
 FILE_barebox-socfpga-arria10-plat.img = start_socfpga_arria10_plat.pblx.socfpgaimg
 socfpga-barebox-$(CONFIG_MACH_SOCFPGA_ARRIA10_PLAT) += barebox-socfpga-arria10-plat.img
 
+pblx-$(CONFIG_MACH_SOCFPGA_ARRIA10_PLAT) += start_socfpga_arria10_plat_xload
+FILE_barebox-socfpga-arria10-plat-xload.img = start_socfpga_arria10_plat_xload.pblx.socfpgaimg
+socfpga-xload-$(CONFIG_MACH_SOCFPGA_ARRIA10_PLAT) += barebox-socfpga-arria10-plat-xload.img
+
 pblx-$(CONFIG_MACH_SOCFPGA_TERASIC_SOCKIT) += start_socfpga_sockit_xload
 FILE_barebox-socfpga-sockit-xload.img = start_socfpga_sockit_xload.pblx.socfpgaimg
 socfpga-xload-$(CONFIG_MACH_SOCFPGA_TERASIC_SOCKIT) += barebox-socfpga-sockit-xload.img
