@@ -129,12 +129,145 @@ static struct socfpga_barebox_part boot_part[] = {
 	{ /* sentinel */ }
 };
 
+static int arria10_plat_fpga_program(void)
+{
+	int ret=0, fd;
+	uint8_t buf[512], part[128];
+	struct cdev *fpga_manager;
+	size_t counter = 0;
+	struct stat st;
+	uint16_t handoff;
+	struct device_node *fpga_binary;
+	const char *file_path;
+
+	handoff = readl(ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+	strcpy(part, "/dev/");
+	strcat(part, boot_part[handoff & FPGA_BOOT_PARTITION].mmc_disk);
+	pr_info("handoff 0x%08x %s\n", handoff, part);
+
+	if (handoff & FPGA_PROGRAMMED) {
+		goto outa;
+	}
+
+	pr_info("Mounting filesystem for FPGA image\n");
+	/* Get device env is on and mount it */
+	ret = mount(part, "fat", "/", NULL);
+	if (ret) {
+		pr_err("mount failed %s\n", strerror(-ret));
+		goto out4;
+	}
+
+	pr_info("Opening files\n");
+	fpga_manager = cdev_open("/dev/socfpga-fpga", O_RDWR);
+	if (!fpga_manager) {
+		ret = -ENODEV;
+		pr_err("fpga manager open failed: %s\n", strerror(-ret));
+		goto out3;
+	}
+
+	fpga_binary = of_find_node_by_path("/chosen/fpga-binary");
+	if (!fpga_binary) {
+		ret = -ENOENT;
+		pr_err("Couldn't find fpga-binary node: %s\n", strerror(-ret));
+		goto out2;
+	}
+
+	ret = of_property_read_string(fpga_binary, "file-path", &file_path);
+	if (ret) {
+		pr_err("No file-path in fpga-binary node: %s\n", strerror(-ret));
+		goto out2;
+	}
+
+	fd = open(file_path, O_RDONLY);
+	if (fd < 0) {
+		ret = fd;
+		pr_err("Failed to open fpga binary file: %s\n", strerror(-ret));
+		goto out2;
+	}
+	fstat(fd, &st);
+
+	pr_info("Programming FPGA\n");
+	init_progression_bar(st.st_size);
+	while (1) {
+		ret = read(fd, buf, sizeof(buf));
+		if (ret == 0) {
+			break;
+		} else if (ret < 0) {
+			pr_err("Failed read: %s\n", strerror(-ret));
+			goto out1;
+		} else {
+			counter += ret;
+			if (cdev_write(fpga_manager, buf, ret, 0, 0) != ret) {
+				pr_err("Failed write: %s\n", ret < 0 ? strerror(-ret) : "short write");
+				goto out1;
+			}
+			if (st.st_size && st.st_size != FILESIZE_MAX) {
+				show_progress(counter);
+			}
+		}
+	}
+	writel((handoff | FPGA_PROGRAMMED), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+
+	pr_info("\nDone, total %zd.\n", counter);
+	close(fd);
+	cdev_close(fpga_manager);
+	umount("/");
+	restart_machine();
+outa:
+	arria10_ddr_calibration_sequence();
+	return ret;
+
+out1:
+	close(fd);
+out2:
+	cdev_close(fpga_manager);
+out3:
+	umount("/");
+out4:
+	if (handoff & FPGA_PROGRAM_FAILED) {
+		pr_err("Failed to program FPGA using both partitions!\n");
+	} else {
+		// Attempt to boot from alternate partition
+		if (handoff & FPGA_BOOT_PARTITION)
+			writel(((handoff & ~FPGA_BOOT_PARTITION) | FPGA_PROGRAM_FAILED), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+		else
+			writel(((handoff | FPGA_BOOT_PARTITION) | FPGA_PROGRAM_FAILED), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+
+		pr_info("Restarting to program FPGA from alternate partition\n\n");
+		restart_machine();
+	}
+	arria10_ddr_calibration_sequence();
+	return ret;
+}
+crypto_initcall(arria10_plat_fpga_program);
+
+static void arria10_plat_check_fpga_boot_partition(uint8_t partition)
+{
+	uint16_t handoff;
+	handoff = readl(ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+	if (handoff & FPGA_PROGRAM_FAILED) {
+		pr_warning("FPGA programming failure occurred:\n"
+				"    check FPGA version for compatibility issues!\n");
+		// Clear failed bit
+		writel((handoff & ~FPGA_PROGRAM_FAILED), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+	} else if (partition != (handoff & FPGA_BOOT_PARTITION)) {
+		if (partition) {
+			// Set the fpga boot partition to 1
+			writel(((handoff | FPGA_BOOT_PARTITION) & ~FPGA_PROGRAMMED), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+		} else {
+			// Set the fpga boot partition to 0
+			writel(((handoff & ~FPGA_BOOT_PARTITION) & ~FPGA_PROGRAMMED), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
+		}
+		pr_info("Restarting to program FPGA from alternate partition\n\n");
+		restart_machine();
+	}
+}
+
 static int arria10_plat_choose_boot(void)
 {
 	struct cdev *eeprom = cdev_open(BOOT_EEPROM, O_RDWR);
 	uint8_t buf[2], check[2];
 	int ret;
-	uint16_t handoff;
 
 	if (!eeprom)
 		return -ENODEV;
@@ -159,18 +292,7 @@ static int arria10_plat_choose_boot(void)
 	pr_info("========  Boot count %d/%d  ==  Booting from partition %s  ========\n",
 		buf[1], BOOT_MAXCOUNT, barebox_part->mmc_disk);
 
-	handoff = readl(ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
-	if (buf[0] != (handoff & 0x01)) {
-		if (buf[0]) {
-			// Set the handoff bit to boot from partition 1
-			writel((handoff | 0x01), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
-		} else {
-			// Clear the handoff bit to boot from partition 0
-			writel((handoff & ~0x01), ARRIA10_SYSMGR_ROM_ISW_HANDOFF2);
-		}
-		pr_info("Restarting to program from alternative partition\n\n");
-		restart_machine();
-	}
+	arria10_plat_check_fpga_boot_partition(buf[0]);
 
 	ret = cdev_write(eeprom, buf, sizeof(buf), 0, 0);
 	if (ret != sizeof(buf)) {
