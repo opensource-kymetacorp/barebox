@@ -220,6 +220,17 @@ __noreturn void barebox_non_pbl_start(unsigned long membase,
 	pr_debug("initializing malloc pool at 0x%08lx (size 0x%08lx)\n",
 			malloc_start, malloc_end - malloc_start);
 
+#ifdef CONFIG_ARCH_SOCFPGA_XLOAD
+	pr_info("malloc     malloc-end  DTB        DTB-end     Stack      Stack-end\n");
+	pr_info("0x%08lx 0x%08lx  0x%08lx 0x%08lx  0x%08lx 0x%08lx\n",
+		malloc_start,
+		malloc_end,
+		arm_mem_boarddata(membase, endmem, barebox_boarddata_size),
+		arm_mem_boarddata(membase, endmem, barebox_boarddata_size) + barebox_boarddata_size,
+		arm_mem_stack_top(membase, membase + memsize) - 16,
+		endmem);
+#endif
+
 	mem_malloc_init((void *)malloc_start, (void *)malloc_end - 1);
 
 	pr_debug("starting barebox...\n");
